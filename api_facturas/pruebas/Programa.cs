@@ -67,7 +67,22 @@ catch (NoEncontradoExcepcion) { /* esperado */ }
 try { await servicioPersona.ActualizarAsync("T1", new()); Verificar(false, "persona: debió lanzar ArgumentException"); }
 catch (ArgumentException) { /* esperado */ }
 
-Console.WriteLine("CRITERIO 6 OK: producto y persona funcionan con repositorios falsos, sin PostgreSQL");
+// ------------------------------------------------------------
+// v3 — el molde una vez más, ahora EMPRESA (criterio 6 de la v3).
+// ------------------------------------------------------------
+
+var servicioEmpresa = new ServicioEmpresa(new RepositorioEmpresaFalsoEnMemoria());
+
+await servicioEmpresa.CrearAsync(new Empresa { Codigo = "T1", Nombre = "Test S.A." });
+Verificar((await servicioEmpresa.ListarAsync(10))[0].Codigo == "T1", "empresa: crear + listar");
+Verificar((await servicioEmpresa.ObtenerAsync("T1")).Nombre == "Test S.A.", "empresa: obtener");
+Verificar(await servicioEmpresa.ActualizarAsync("T1", new() { ["nombre"] = "Test SAS" }) == 1, "empresa: actualizar");
+Verificar(await servicioEmpresa.EliminarAsync("T1") == 1, "empresa: eliminar");
+
+try { await servicioEmpresa.ObtenerAsync("NOEXISTE"); Verificar(false, "empresa: debió lanzar NoEncontradoExcepcion"); }
+catch (NoEncontradoExcepcion) { /* esperado */ }
+
+Console.WriteLine("CRITERIO 6 OK: producto, persona y empresa funcionan con repositorios falsos, sin PostgreSQL");
 
 // Mini-verificador (función local): si la condición es falsa, reporta
 // y sale con error (terminar con 0 = pasó; con 1 = falló).
@@ -172,6 +187,44 @@ class RepositorioPersonaFalsoEnMemoria : IRepositorioPersona
         if (datos.TryGetValue("nombre", out var nombre)) { persona.Nombre = (string)nombre; }
         if (datos.TryGetValue("email", out var email)) { persona.Email = (string)email; }
         if (datos.TryGetValue("telefono", out var telefono)) { persona.Telefono = (string)telefono; }
+        return Task.FromResult(1);
+    }
+
+    public Task<int> EliminarAsync(string codigo)
+    {
+        return Task.FromResult(_datos.Remove(codigo) ? 1 : 0);
+    }
+}
+
+// ------------------------------------------------------------
+// v3 — el repositorio falso de EMPRESA (calcado de los otros dos).
+// ------------------------------------------------------------
+class RepositorioEmpresaFalsoEnMemoria : IRepositorioEmpresa
+{
+    private readonly Dictionary<string, Empresa> _datos = new();
+
+    public Task<List<Empresa>> ObtenerTodasAsync(int limite)
+    {
+        var lista = _datos.Values.OrderBy(e => e.Codigo).Take(limite).ToList();
+        return Task.FromResult(lista);
+    }
+
+    public Task<Empresa?> ObtenerPorCodigoAsync(string codigo)
+    {
+        _datos.TryGetValue(codigo, out var empresa);
+        return Task.FromResult(empresa);
+    }
+
+    public Task CrearAsync(Empresa entidad)
+    {
+        _datos[entidad.Codigo] = entidad;
+        return Task.CompletedTask;
+    }
+
+    public Task<int> ActualizarAsync(string codigo, Dictionary<string, object> datos)
+    {
+        if (!_datos.TryGetValue(codigo, out var empresa)) { return Task.FromResult(0); }
+        if (datos.TryGetValue("nombre", out var nombre)) { empresa.Nombre = (string)nombre; }
         return Task.FromResult(1);
     }
 

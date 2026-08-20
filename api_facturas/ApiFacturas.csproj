@@ -28,6 +28,9 @@
            Swagger (/swagger) leyendo los controladores y sus clases de datos. -->
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <!-- v3: BCrypt.Net-Next — el hash de la contraseña de usuario
+         (costo 12). Lo usa SOLO el repositorio de usuario. -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
   <ItemGroup>

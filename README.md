@@ -77,7 +77,7 @@ es **reconstruirla usted mismo, en una carpeta propia (fuera del clon)**,
 siguiendo las especificaciones — con o sin ayuda de IA:
 
 > 🤖 ¿Va a trabajar con IA? Siga la **[Guía para construir la versión con
-> IA](docs/spec_kit/versiones/v2_persona_factura/GUIA_IA2.md)** — cubre los dos caminos con su prompt exacto listo
+> IA](docs/spec_kit/versiones/v3_resto_entidades/GUIA_IA3.md)** — cubre los dos caminos con su prompt exacto listo
 > para copiar: **chat web** (Gemini, DeepSeek, ChatGPT: qué archivos
 > subirle) e **IDE agéntico** (Antigravity, Cursor, Claude Code: cómo
 > supervisar al agente).
@@ -153,13 +153,15 @@ más carpetas de componentes (y el compose crecerá con ellas).
 ## 3. La ruta de versiones
 
 ```
-v1  api_facturas (C#/ASP.NET Core): CRUD de producto, solo PostgreSQL   ← USTED ESTÁ AQUÍ
-v2  más tablas (persona, factura maestro-detalle…)
-v3  segundo motor (PostgreSQL) — nace la fábrica de repositorios
-v4  tercer motor (MariaDB) + compose completo
-v5  API GENÉRICA de plataforma: /api/{tabla} multi-motor + JWT +
+v1  api_facturas (C#/ASP.NET Core): CRUD de producto, solo PostgreSQL   (cerrada: tag v1)
+v2  persona (el molde replicado) + factura maestro-detalle con SPs   (cerrada: tag v2)
+v3  el RESTO de las entidades: toda la bdfacturas cubierta con
+    UN motor (usuario con BCrypt, tablas puente)   ← USTED ESTÁ AQUÍ
+v4  segundo motor (SQL Server) — nace la fábrica de repositorios
+v5  tercer motor (MariaDB) + compose completo
+v6  API GENÉRICA de plataforma: /api/{tabla} multi-motor + JWT +
     consultas parametrizadas + procedimientos almacenados
-v6  frontend FLASK (Jinja2): CRUD de las 12 entidades + login + facturación
+v7  frontend FLASK (Jinja2): CRUD de las 12 entidades + login + facturación
 ```
 
 La regla del juego: la **constitución** es permanente, cada versión tiene
@@ -167,18 +169,18 @@ su propia spec, y una versión está TERMINADA solo cuando pasa sus criterios
 de aceptación (commit + tag). Mapa completo:
 [docs/spec_kit/versiones/0_mapa_versiones.md](docs/spec_kit/versiones/0_mapa_versiones.md).
 
-## 4. Las especificaciones de la versión actual (v2)
+## 4. Las especificaciones de la versión actual (v3)
 
 | Documento | Contenido |
 |---|---|
 | [1_constitution.md](docs/spec_kit/1_constitution.md) | Las reglas permanentes del proyecto |
-| [2_spec.md](docs/spec_kit/versiones/v2_persona_factura/2_spec.md) | QUÉ construir y los criterios de aceptación |
-| [3_plan.md](docs/spec_kit/versiones/v2_persona_factura/3_plan.md) | CÓMO: stack, estructura y diseño de las capas |
-| [4_research.md](docs/spec_kit/versiones/v2_persona_factura/4_research.md) | Decisiones y alternativas (el porqué) |
-| [5_data_model.md](docs/spec_kit/versiones/v2_persona_factura/5_data_model.md) | La BD completa (dada) y la tabla producto |
-| [6_contracts.md](docs/spec_kit/versiones/v2_persona_factura/6_contracts.md) | Los 7 endpoints con formatos exactos |
-| [7_quickstart.md](docs/spec_kit/versiones/v2_persona_factura/7_quickstart.md) | Arranque y smoke test |
-| [8_tasks.md](docs/spec_kit/versiones/v2_persona_factura/8_tasks.md) | Orden de construcción por fases verificables |
+| [2_spec.md](docs/spec_kit/versiones/v3_resto_entidades/2_spec.md) | QUÉ construir y los criterios de aceptación |
+| [3_plan.md](docs/spec_kit/versiones/v3_resto_entidades/3_plan.md) | CÓMO: stack, estructura y diseño de las capas |
+| [4_research.md](docs/spec_kit/versiones/v3_resto_entidades/4_research.md) | Decisiones y alternativas (el porqué) |
+| [5_data_model.md](docs/spec_kit/versiones/v3_resto_entidades/5_data_model.md) | La BD completa (dada) y la tabla producto |
+| [6_contracts.md](docs/spec_kit/versiones/v3_resto_entidades/6_contracts.md) | Los 7 endpoints con formatos exactos |
+| [7_quickstart.md](docs/spec_kit/versiones/v3_resto_entidades/7_quickstart.md) | Arranque y smoke test |
+| [8_tasks.md](docs/spec_kit/versiones/v3_resto_entidades/8_tasks.md) | Orden de construcción por fases verificables |
 
 ## 5. Material conceptual del curso
 
