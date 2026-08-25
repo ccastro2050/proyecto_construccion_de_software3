@@ -178,5 +178,5 @@ solos por sus atributos.
 
 ## 5. Docker
 
-Sin cambios: mismos 3 servicios, mismos puertos (API 8042 · PostgreSQL
-15442 al host). `dotnet watch` recompila al agregar los archivos nuevos.
+Sin cambios: mismos 3 servicios, mismos puertos (API 8044 · PostgreSQL
+15444 al host). `dotnet watch` recompila al agregar los archivos nuevos.
