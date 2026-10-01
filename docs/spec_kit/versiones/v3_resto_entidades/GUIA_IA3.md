@@ -4,7 +4,7 @@
 > v1 y v2 terminadas). El método general es el de la
 > [guía de la v1](../v1_sin_fk/GUIA_IA1.md) y los ajustes de
 > trabajo acumulativo son los de la
-> [guía de la v2](../v2_persona_factura/GUIA_IA2.md): aquí está SOLO lo
+> [guía de la v2](../v2_con_fk/GUIA_IA2.md): aquí está SOLO lo
 > propio de la v3.
 
 ---
@@ -50,7 +50,7 @@ los kits de v1/v2 (el código que la IA necesite ver, se lo pega usted).
 
 ## A.3 El prompt (los cambios sobre el de la v2)
 
-Use el prompt de la [guía v2](../v2_persona_factura/GUIA_IA2.md) A.3
+Use el prompt de la [guía v2](../v2_con_fk/GUIA_IA2.md) A.3
 cambiando:
 
 - "VERSIÓN 2" → "VERSIÓN 3", y el CONTEXTO CLAVE: *"Mi proyecto YA TIENE

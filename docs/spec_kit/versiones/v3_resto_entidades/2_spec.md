@@ -110,7 +110,7 @@ endpoint de la v3.
 
 1. **Regresión:** `docker compose up -d --build` y los smoke tests de
    [v1](../v1_sin_fk/7_quickstart.md) y
-   [v2](../v2_persona_factura/7_quickstart.md) pasan completos (solo
+   [v2](../v2_con_fk/7_quickstart.md) pasan completos (solo
    cambia `"version":"v3"`).
 2. **Los moldes:** ciclo completo (5 verbos, con la pareja PUT/PATCH donde
    la entidad tiene 2+ campos) para empresa, cliente, vendedor, rol y

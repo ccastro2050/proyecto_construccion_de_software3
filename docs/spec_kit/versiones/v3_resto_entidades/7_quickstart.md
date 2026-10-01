@@ -15,7 +15,7 @@ docker compose up -d --build
 
 Correr COMPLETOS los smoke tests de la
 [v1](../v1_sin_fk/7_quickstart.md) §2 y la
-[v2](../v2_persona_factura/7_quickstart.md) §3.
+[v2](../v2_con_fk/7_quickstart.md) §3.
 Única diferencia esperada: `"version":"v3"` en el diagnóstico.
 
 ## 3. Smoke test de lo nuevo (criterios 2 a 6)
