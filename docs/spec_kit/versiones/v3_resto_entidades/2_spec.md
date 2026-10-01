@@ -109,7 +109,7 @@ endpoint de la v3.
 ## 5. Criterios de aceptación
 
 1. **Regresión:** `docker compose up -d --build` y los smoke tests de
-   [v1](../v1_producto_postgres/7_quickstart.md) y
+   [v1](../v1_producto/7_quickstart.md) y
    [v2](../v2_persona_factura/7_quickstart.md) pasan completos (solo
    cambia `"version":"v3"`).
 2. **Los moldes:** ciclo completo (5 verbos, con la pareja PUT/PATCH donde

@@ -2,7 +2,7 @@
 
 > Guía de la **v3** (acumulativa: se construye encima de su proyecto con
 > v1 y v2 terminadas). El método general es el de la
-> [guía de la v1](../v1_producto_postgres/GUIA_IA1.md) y los ajustes de
+> [guía de la v1](../v1_producto/GUIA_IA1.md) y los ajustes de
 > trabajo acumulativo son los de la
 > [guía de la v2](../v2_persona_factura/GUIA_IA2.md): aquí está SOLO lo
 > propio de la v3.

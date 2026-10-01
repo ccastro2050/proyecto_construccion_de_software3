@@ -14,7 +14,7 @@ docker compose up -d --build
 ## 2. Regresión: v1 y v2 intactas (criterio 1)
 
 Correr COMPLETOS los smoke tests de la
-[v1](../v1_producto_postgres/7_quickstart.md) §2 y la
+[v1](../v1_producto/7_quickstart.md) §2 y la
 [v2](../v2_persona_factura/7_quickstart.md) §3.
 Única diferencia esperada: `"version":"v3"` en el diagnóstico.
 
