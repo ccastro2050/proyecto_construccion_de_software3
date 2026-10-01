@@ -15,6 +15,7 @@ using ApiFacturas.Autorizacion;
 using ApiFacturas.Modelos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using ApiFacturas.Repositorios;
 using ApiFacturas.Servicios;
 using Microsoft.AspNetCore.Mvc;
@@ -212,7 +213,56 @@ builder.Services.AddControllers()
 // donde se ven TODOS los endpoints y se pueden probar desde el
 // navegador (http://localhost:8044/swagger).
 builder.Services.AddEndpointsApiExplorer();   // descubre los endpoints
-builder.Services.AddSwaggerGen();             // arma el documento OpenAPI
+builder.Services.AddSwaggerGen(opciones =>
+{
+    // ============================================================
+    // v3 — EL BOTON «Authorize» DE SWAGGER.
+    //
+    // Sin esto, al exigir token TODO responde 401 desde Swagger y no hay
+    // donde pegarlo: la API funciona y la herramienta con la que se
+    // sustenta el proyecto deja de servir.
+    //
+    // Y ensena algo que no es obvio: Swagger NO ADIVINA como se autentica
+    // una API. Hay que declararlo, y eso es parte del contrato — un
+    // documento OpenAPI que no dice como se entra esta incompleto.
+    //
+    // COMO SE USA, y conviene escribirlo porque la primera vez cuesta:
+    //
+    //   1. POST /api/sesion con { "email": "...", "contrasena": "..." }
+    //   2. Copie el valor de `token` de la respuesta (sin las comillas)
+    //   3. Boton «Authorize», arriba a la derecha, y pegue SOLO el token
+    //      -sin la palabra Bearer: la pone Swagger-
+    //   4. Ya puede probar los demas endpoints
+    // ============================================================
+    opciones.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Pegue AQUI el `token` que devuelve POST /api/sesion. "
+                    + "Solo el token: la palabra «Bearer» la pone Swagger.",
+    });
+
+    // Y esto es lo que le pone el candado a cada endpoint. Sin el, el boton
+    // aparece pero el token no viaja — y todo sigue en 401, que es el peor
+    // de los dos errores porque parece que si se configuro.
+    opciones.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer",
+                },
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Construir la aplicación con todo lo registrado:
 var app = builder.Build();

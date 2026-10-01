@@ -47,6 +47,46 @@ docker compose up -d --build
 
 ---
 
+## 2bis. Swagger, que ahora pide token
+
+**La v3 le cambia el uso a Swagger**, y hay que saberlo o parece que algo se
+rompió: al exigir token, cualquier endpoint que se pruebe sin autorizar
+responde **401**.
+
+> **Por eso la API declara su esquema de seguridad en el documento OpenAPI.**
+> Swagger **no adivina** cómo se autentica una API: hay que decírselo, y eso es
+> parte del contrato — un OpenAPI que no dice cómo se entra está incompleto.
+
+### Los cuatro pasos
+
+```
+http://localhost:8044/swagger
+```
+
+| | Qué hacer |
+|---|---|
+| **1** | Despliegue **`POST /api/sesion`** → *Try it out* → en el cuerpo ponga `{ "email": "admin@correo.com", "contrasena": "admin123" }` → *Execute* |
+| **2** | En la respuesta, **copie el valor de `token`** — solo el texto, sin las comillas |
+| **3** | Botón **`Authorize`**, arriba a la derecha → pegue **solo el token** → *Authorize* → *Close* |
+| **4** | Ya puede probar cualquier endpoint: el candado se cierra y Swagger manda la cabecera |
+
+> **No escriba la palabra `Bearer`.** La pone Swagger. Escribirla produce
+> `Bearer Bearer eyJ…`, que es un 401 que cuesta encontrar porque el token
+> está bien.
+
+### Lo que conviene probar ahí mismo
+
+| | Qué hacer | Qué tiene que pasar |
+|---|---|---|
+| **Sin autorizar** | Pruebe `GET /api/producto` antes del paso 3 | **401** |
+| **Autorizado** | El mismo, después | **200** |
+| **El 403** | Cierre sesión (*Authorize* → *Logout*), entre como `vendedor1@correo.com` / `vendedor123`, autorice con **ese** token y pruebe `GET /api/usuario` | **403**, con la `ruta` que le faltó |
+
+> **`POST /api/sesion` muestra el candado como los demás** —el requisito está
+> declarado para toda la API— **y funciona sin token igual**, porque el
+> controlador es `[AllowAnonymous]`. El candado dice «esta API usa token», no
+> «este endpoint lo exige».
+
 ## 3. CRITERIO 1 — ninguna contraseña legible en la base
 
 ```powershell
