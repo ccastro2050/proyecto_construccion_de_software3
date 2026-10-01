@@ -44,7 +44,7 @@ diagnóstico pasa a `"version": "v3"` · la prueba de capas crece con
 empresa (el molde una vez más, sin BD).
 
 **No incluye (deliberado — [mapa](../0_mapa_versiones.md)):**
-- **JWT, login con token y control de acceso**: eso llega con el front (v6). En v3, usuario/rol/ruta/rutarol son DATOS con CRUD — la
+- **JWT, login con token y control de acceso**: eso es la **v3**. En v3, usuario/rol/ruta/rutarol son DATOS con CRUD — la
   infraestructura RBAC se llena, todavía no protege endpoints.
 - Otros motores ni fábrica multi-motor (v4).
 - CRUD directo de `productosporfactura`: sus renglones se gestionan a
@@ -75,7 +75,7 @@ FK violada (fkcodpersona inexistente) o UNIQUE violado (ruta repetida)
 - PUT (contrasena obligatoria) y PATCH (opcional) **re-hashean** si llega.
 - `POST /api/usuario/verificar-contrasena?valor_usuario=…&valor_contrasena=…`
   → 200 válida · 401 incorrecta · 404 el usuario no existe. Es el
-  cimiento del login real que llegará con JWT (v6).
+  cimiento del login real que llegará con JWT en la v3.
 
 ### RF3 — Las tablas puente (rol_usuario y rutarol)
 Sin PUT/PATCH (una asignación no se edita: se quita y se pone otra):
@@ -104,12 +104,12 @@ endpoint de la v3.
   REPOSITORIO de usuario; servicio y controller no saben qué algoritmo es.
 - **RNF3 — El secreto no sale:** ningún SELECT de la API proyecta la
   columna `contrasena` hacia el cliente HTTP.
-- **RNF4 — Sin anticipación:** nada de JWT/middleware (v6) ni motores (v4).
+- **RNF4 — Sin anticipación:** nada de JWT ni middleware (v3) ni motores (v4).
 
 ## 5. Criterios de aceptación
 
 1. **Regresión:** `docker compose up -d --build` y los smoke tests de
-   [v1](../v1_producto/7_quickstart.md) y
+   [v1](../v1_sin_fk/7_quickstart.md) y
    [v2](../v2_persona_factura/7_quickstart.md) pasan completos (solo
    cambia `"version":"v3"`).
 2. **Los moldes:** ciclo completo (5 verbos, con la pareja PUT/PATCH donde

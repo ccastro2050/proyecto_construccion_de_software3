@@ -59,7 +59,7 @@ DELETE /api/usuario/{email}  → 200 {…, filasEliminadas:1} · 404
                              (si tiene roles asignados → 500 por FK)
 ```
 
-**Verificación de credenciales** (el cimiento del login de la v6):
+**Verificación de credenciales** (el cimiento del login, que es de la v3):
 
 ```
 POST /api/usuario/verificar-contrasena?valor_usuario={email}&valor_contrasena={clave}
