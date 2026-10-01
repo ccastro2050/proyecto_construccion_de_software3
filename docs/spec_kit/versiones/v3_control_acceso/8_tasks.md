@@ -1,4 +1,4 @@
-# Tareas — Versión 3: el resto de las entidades
+# Tareas — Versión 3: el control de acceso, por fases
 
 > **Versión 3** · El orden de construcción, PARTIENDO DE LA v2 TERMINADA
 > (tag `v2`). Requisitos: [2_spec.md](2_spec.md) · técnica: [3_plan.md](3_plan.md)

@@ -1,4 +1,4 @@
-# Plan técnico — Versión 3: el resto de las entidades
+# Plan técnico — Versión 3: autenticación y autorización
 
 > **Nota (agosto de 2026):** el curso adoptó **Dapper** como
 > micro-ejecutor en TODOS los repositorios: el SQL sigue escrito a mano

@@ -135,7 +135,7 @@ app.MapGet("/", () => Results.Json(new
 {
     mensaje = "API Facturas funcionando",
     version = "v3",
-    contratos = "docs/spec_kit/versiones/v3_resto_entidades/6_contracts.md"
+    contratos = "docs/spec_kit/versiones/v3_control_acceso/6_contracts.md"
 }));
 
 // MapControllers enciende las rutas declaradas con atributos en los

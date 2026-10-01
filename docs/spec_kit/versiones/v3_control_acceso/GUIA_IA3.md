@@ -18,7 +18,7 @@ con sus puertos +100). La BD no cambia: las 8 tablas de la v3 están en su
 ## A.1 Qué subirle al chat (los 9 de la v3)
 
 `docs/spec_kit/1_constitution.md` + los 7 documentos de
-`docs/spec_kit/versiones/v3_resto_entidades/` (2_spec a 8_tasks). No suba
+`docs/spec_kit/versiones/v3_control_acceso/` (2_spec a 8_tasks). No suba
 los kits de v1/v2 (el código que la IA necesite ver, se lo pega usted).
 
 ## A.2 Prepare su proyecto (comandos PowerShell)
@@ -26,13 +26,13 @@ los kits de v1/v2 (el código que la IA necesite ver, se lo pega usted).
 1. **Carpeta nueva** (la única): la de las specs de la v3.
 
    ```powershell
-   mkdir docs\spec_kit\versiones\v3_resto_entidades
+   mkdir docs\spec_kit\versiones\v3_control_acceso
    ```
 
 2. **Copie las specs** desde el clon del curso (ajuste la primera ruta):
 
    ```powershell
-   Copy-Item ..\proyecto_construccion_de_software3\docs\spec_kit\versiones\v3_resto_entidades\* docs\spec_kit\versiones\v3_resto_entidades\
+   Copy-Item ..\proyecto_construccion_de_software3\docs\spec_kit\versiones\v3_control_acceso\* docs\spec_kit\versiones\v3_control_acceso\
    ```
 
 3. **Cree los ARCHIVOS VACÍOS nuevos** — los 68 que la IA irá llenando

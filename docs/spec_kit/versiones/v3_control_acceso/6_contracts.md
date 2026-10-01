@@ -91,7 +91,7 @@ DELETE /api/rutarol/{idruta}/{idrol}          → 200 · 404
 ## D. Diagnóstico (la única alteración)
 
 ```
-GET /  → 200 {"mensaje":"API Facturas funcionando","version":"v3","contratos":"docs/spec_kit/versiones/v3_resto_entidades/6_contracts.md"}
+GET /  → 200 {"mensaje":"API Facturas funcionando","version":"v3","contratos":"docs/spec_kit/versiones/v3_control_acceso/6_contracts.md"}
 ```
 
 ## E. Estabilidad
