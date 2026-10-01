@@ -1,98 +1,89 @@
-# Lista de chequeo de requisitos — Versión 3
+# Lista de chequeo — Versión 3: antes de la primera línea de código
 
-> **La compuerta 3** del método (ver [SDD_SPECKIT](../../../SDD_SPECKIT.md)). Esta lista
-> revisa **la ESPECIFICACIÓN, no el código**: se pasa cuando los documentos
-> 2 a 8 de esta versión están escritos y ANTES de programar la primera
-> línea. Es el equivalente a mano de `checklists/requirements.md`, que en
-> Spec Kit genera `/speckit.checklist`.
-
-## Cómo se usa
-
-- **Las casillas las marca una persona.** Una IA puede ayudar a evaluar y a
-  señalar dudas, pero **no puede auto-aprobarse**: quien firma es quien
-  responde por la versión.
-- Se marca `[x]` solo cuando el criterio se cumple **hoy, en el documento**
-  — no "cuando lo arregle".
-- **Con una sola casilla en rojo no se escribe código.** Se vuelve al
-  documento que la causó, se corrige, y se pasa la lista otra vez.
-- Trabaja bien en pareja: un estudiante revisa la spec del otro. Las
-  ambigüedades que uno no ve, el otro las tropieza de una.
+> Se firma **antes** de escribir código. Si una casilla no se puede marcar, la
+> versión no arranca — y lo que falta se arregla en los documentos, que es
+> barato.
 
 ---
 
-## A. Claridad — ¿dice UNA sola cosa?
+## A. La especificación está completa
 
-- [ ] Ningún requisito usa palabras sin definir: *rápido, amigable,
-      eficiente, correcto, adecuado, robusto*.
-- [ ] No queda ningún marcador `[NECESITA ACLARACIÓN: …]` sin resolver en
-      la sección de **Clarificaciones** de [2_spec.md](2_spec.md).
-- [ ] Cada RF explica UNA cosa. Si uno necesita un "y" para entenderse, se
-      partió en dos.
-- [ ] Los RF no mencionan tecnología ni nombres de clase: el QUÉ está
-      separado del CÓMO, que vive en [3_plan.md](3_plan.md).
+- [ ] No queda ningún `[NECESITA ACLARACIÓN: …]` en [2_spec.md](2_spec.md).
+- [ ] Los **diez** criterios de aceptación son **verificables**: cada uno dice
+      qué hacer y qué tiene que pasar.
+- [ ] Está escrito **cuál de los diez no se puede simular**, y por qué.
 
-## B. Medible — ¿se puede verificar?
+## B. Los conceptos están entendidos — no solo leídos
 
-- [ ] Cada criterio de aceptación de [2_spec.md](2_spec.md) dice un **valor
-      concreto**: un número, un código de estado o un texto exacto.
-- [ ] Cada criterio se puede comprobar con **un comando** de
-      [7_quickstart.md](7_quickstart.md). Si no hay comando posible, no es
-      criterio.
-- [ ] Los códigos de error están dichos por su número (400, 404, 422,
-      500), no como "responde con un error".
+- [ ] Se puede explicar la diferencia entre **401 y 403** sin mirar.
+- [ ] Se puede explicar por qué **SHA-256 no sirve** para contraseñas, y la
+      razón es que es **demasiado rápido**.
+- [ ] Se puede explicar qué es el ***salt*** y qué problema resuelve.
+- [ ] Se puede explicar que un JWT está **firmado y NO cifrado**, y qué
+      significa eso para lo que se le mete adentro.
+- [ ] Se puede explicar por qué **los permisos no van en el token**.
+- [ ] Se puede explicar por qué **esconder una entrada del menú no protege
+      nada**.
 
-## C. Completitud — ¿falta algo?
+> **Los seis están en
+> [CONCEPTOS_CONTROL_DE_ACCESO.md](../../../CONCEPTOS_CONTROL_DE_ACCESO.md).**
+> Esta versión es la única del curso en la que entender mal un concepto produce
+> un sistema **que parece funcionar**.
 
-- [ ] Los RF cubren todo lo que promete el propósito: nada del alcance
-      quedó sin requisito.
-- [ ] [2_spec.md](2_spec.md) tiene su **NO incluye** explícito.
-- [ ] Cada entrada de [6_contracts.md](6_contracts.md) documenta sus
-      desenlaces de **ERROR**, no solo el camino feliz.
-- [ ] [5_data_model.md](5_data_model.md) trae los **datos exactos** de los
-      que dependen los comandos del smoke test.
-- [ ] Cada decisión de [4_research.md](4_research.md) tiene al menos una
-      alternativa descartada con su razón.
+## C. El alcance está cerrado
 
-## D. Coherencia — ¿los documentos dicen lo mismo?
+- [ ] Está escrito que la v3 **no agrega ni modifica una sola tabla**.
+- [ ] Está escrito que el **CRUD** de `usuario`, `rol`, `ruta`, `rol_usuario` y
+      `rutarol` **ya está** (v1 y v2), y que lo que llega es **la puerta**.
+- [ ] Está escrito que **un token no se puede revocar** — y que de ahí sale que
+      la duración sea corta.
+- [ ] Está escrito qué queda fuera: refrescar el token, recuperar la
+      contraseña, segundo factor, permisos por operación.
 
-- [ ] Todo RF de [2_spec.md](2_spec.md) aparece en
-      [6_contracts.md](6_contracts.md).
-- [ ] Todo lo que promete [6_contracts.md](6_contracts.md) tiene una tarea
-      que lo construye en [8_tasks.md](8_tasks.md).
-- [ ] Todo criterio de aceptación tiene su comando en
-      [7_quickstart.md](7_quickstart.md), **con el mismo número**.
-- [ ] Los ejemplos de [6_contracts.md](6_contracts.md) usan datos que
-      existen en [5_data_model.md](5_data_model.md).
-- [ ] [3_plan.md](3_plan.md) no nombra ningún archivo que ninguna tarea
-      construya, y ninguna tarea construye un archivo que el plan no liste.
-- [ ] El **Chequeo de constitución** de [3_plan.md](3_plan.md) está
-      completo: artículo por artículo, sin saltarse ninguno.
-- [ ] La **regresión** está prevista: el [7_quickstart.md](7_quickstart.md)
-      conserva los smokes de las versiones anteriores, que deben seguir
-      pasando.
+## D. El contrato es exacto
 
+- [ ] [6_contracts.md](6_contracts.md) nombra `POST /api/sesion` con su cuerpo.
+- [ ] Está dicho que el **401 responde lo MISMO** para el correo inexistente y
+      la contraseña equivocada, **y por qué**.
+- [ ] Están nombrados **los dos** endpoints abiertos, y solo dos.
+- [ ] Está la **matriz de los tres roles** contra los recursos.
+- [ ] Está el **cuerpo** del 401 y el del 403.
 
-## E. Alcance — ¿no se está anticipando?
+## E. El plan no anticipa, y nombra los tropiezos
 
-- [ ] Ningún documento nombra entidades, motores o interfaces gráficas fuera del
-      alcance declarado en [2_spec.md](2_spec.md).
-- [ ] Ningún documento anticipa una versión futura (Artículo 1 de la
-      [constitución](../../1_constitution.md): lo que no pide esta versión, no se
-      escribe).
-- [ ] Las dependencias que nombra [3_plan.md](3_plan.md) son exactamente
-      las que permite la constitución.
+- [ ] El único paquete nuevo es **`JwtBearer`**, y su versión **se copió de un
+      proyecto que compila** — no se eligió por intuición.
+- [ ] Están escritos los **cinco** tropiezos de [3_plan.md](3_plan.md) §5, y
+      los tres que dejan el sistema **menos seguro de lo que parece**.
+- [ ] Está escrito por qué **no** se usa un `DelegatingHandler`.
+- [ ] Está escrito por qué el `@rendermode` va en `App.razor`.
+
+## F. Las tareas son verificables
+
+- [ ] Las **once** fases de [8_tasks.md](8_tasks.md) tienen su verificación.
+- [ ] El orden **contraseña → sesión → permiso → interfaz** está justificado.
+- [ ] Cada fase es **un commit**.
+- [ ] La fase del **criterio 9 en el navegador** está en la lista.
+
+## G. El entorno está listo
+
+- [ ] La v2 **arranca y su prueba de humo pasa**.
+- [ ] Se sabe que esta versión necesita **`docker compose down -v`** una vez, y
+      por qué: el script de la base solo corre cuando el volumen nace.
+- [ ] `verificar_acceso_ruta` **existe** en la base: se comprobó con `\df`, no
+      se supuso.
+- [ ] Las **15 rutas** y los **5 roles** están sembrados: se comprobó con un
+      `SELECT`.
 
 ---
 
-## Resultado
+## Firma
 
 | | |
 |---|---|
-| **Revisada por** | *(nombre de quien firma)* |
+| **Quién** | |
 | **Fecha** | |
-| **Casillas en rojo** | |
-| **Veredicto** | ⬜ En verde: puede empezar el código · ⬜ En rojo: vuelve a la spec |
+| **Casillas sin marcar, y por qué** | |
 
-> Si el veredicto es rojo, anote aquí qué documento hay que corregir y por
-> qué. Esa nota es la que evita repetir el mismo error en la versión
-> siguiente.
+> **Si queda una casilla sin marcar, se escribe aquí por qué.** Una lista con
+> huecos sin explicar es peor que no tenerla.

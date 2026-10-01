@@ -1,61 +1,163 @@
-# Investigación y decisiones — Versión 3
+# Investigación y decisiones — Versión 3: el control de acceso
 
-> **Versión 3** · **Lectura opcional**: el porqué del [plan](3_plan.md).
+> Las decisiones que se tomaron **y las alternativas que se descartaron, con su
+> razón**. En esta versión importa más que en las otras, porque casi todas las
+> alternativas «también funcionan» — y fallan de formas que no se ven.
 
 ---
 
-## D1 — ¿Por qué "toda la BD con un motor" antes del segundo motor?
-Regla del curso fijada por el profesor: cambiar de motor con la cobertura
-a medias obligaría a la v4 a perseguir dos objetivos a la vez (completar
-entidades Y portar dialecto). Con las 12 tablas cubiertas, la v4 será una
-sola pregunta limpia: *¿el contrato sobrevive idéntico en otro motor?* —
-y la fábrica nacerá con el sistema completo detrás.
+## D1 — El hash: ¿SHA-256 o bcrypt?
 
-## D2 — Cinco moldes en serie: la lección es que NO hay lección
-Empresa, cliente, vendedor, rol y ruta no aportan técnica nueva — y eso es
-lo que demuestran: el molde de la v1 escala en serie sin fricción. El
-costo real aparece en Program.cs (16 registros más, §D6).
+**bcrypt**, y la razón es contraintuitiva.
 
-## D3 — BCrypt en el repositorio, y el hash JAMÁS sale
-**Decisión:** el hash se calcula y se compara en `RepositorioUsuarioPostgres`
-(BCrypt.Net-Next, costo 12), y el modelo de lectura `Usuario` NO tiene
-propiedad de contraseña.
-**Por qué en el repo:** cómo se persiste un secreto es un detalle de la
-capa de datos; servicio y controller ignoran el algoritmo.
-**Por qué no exponer ni el hash:** un hash filtrado es material de ataque
-offline. Regla simple y verificable: si no está en el modelo, no puede
-viajar. (El gemelo Python del curso sí devuelve la fila completa — esta
-versión endurece esa decisión a propósito y lo deja escrito.)
-**Alternativa descartada:** SHA-256 "a mano" — sin salt ni factor de
-costo, no es un hash de contraseñas.
+| Opción | Argumento |
+|---|---|
+| **SHA-256** | Está en la librería estándar, no hace falta ningún paquete, y es criptográficamente sólido |
+| **bcrypt** ✅ | **Es LENTO a propósito** |
 
-## D4 — verificar-contrasena SIN JWT todavía
-La v3 entrega el cimiento (credenciales verificables); el token, el
-middleware y el control de acceso llegan con el front. Separarlos
-deja ver que **autenticar** (¿eres quien dices?) y **autorizar** (¿puedes
-hacer esto?) son problemas distintos.
+**Lo que decide:** SHA-256 es **demasiado rápido**. Una tarjeta gráfica calcula
+miles de millones por segundo, así que probar todas las contraseñas de ocho
+caracteres es cuestión de horas. bcrypt se diseñó para ser lento **y con costo
+ajustable**: el día que las máquinas sean más rápidas se sube el costo, sin
+cambiar de función.
 
-## D5 — Puentes sin PUT/PATCH y DELETE por AMBAS columnas
-Una asignación (usuario↔rol, ruta↔rol) no tiene campos editables: existe o
-no existe — editar es quitar y poner. Y el DELETE filtra por las DOS
-columnas de la PK compuesta: en el sistema padre del curso se detectó un
-gemelo que filtraba solo por la primera y borraba de más; la v3 fija la
-regla correcta desde la spec.
+**Y bcrypt trae *salt* incorporado**, que es la otra mitad. El *salt* es un
+valor aleatorio que se mezcla con la contraseña, y hace que **dos personas con
+la misma clave tengan hashes distintos**:
 
-## D6 — Se deja crecer Program.cs a propósito
-Con 22 `AddScoped`, el ensamblador ya duele. **Decisión:** NO refactorizar
-todavía — la constitución prohíbe anticipar, y ese dolor es el argumento
-pedagógico con el que la v4 justificará la fábrica real. El plan lo
-declara para que nadie lo "arregle" por iniciativa propia.
+```
+los dos usuarios de carlos.castro comparten la contrasena, y sus hash no se parecen:
+  $2a$12$f1UjnYhuaQUrCS8w/EARw...
+  $2a$12$F7CLooKrzi/ec4U0iI9.le...
+```
 
-## D7 — productosporfactura no recibe CRUD directo
-Sus renglones nacen y mueren con la factura (SPs + trigger, v2). Un CRUD
-directo permitiría desalinear subtotales sin pasar por la lógica de la BD.
-Cobertura ≠ un controller por tabla: cobertura es que la tabla sea
-operable por el camino correcto.
+Sin *salt*, ver dos hashes iguales en la tabla delataría que esas dos personas
+usan la misma contraseña.
 
-## D8 — Rutas por `{id:int}` también en `ruta`
-La tabla `ruta` guarda paths con barras ("/home") pero su PK es `id INT
-SERIAL` — el CRUD va por id y no hay problema de URLs con barras. (El
-gemelo Python usaba el string como clave y necesitó el convertidor
-`:path`; aquí el DDL evita el problema.)
+> **¿Y Argon2, que ganó la competencia de 2015?** Es mejor —además de lenta,
+> **gasta memoria**, y la memoria es lo que una GPU no tiene de sobra—. No se
+> usa aquí porque `BCrypt.Net-Next` **ya estaba en el proyecto** desde la v1,
+> funcionando. Cambiar de función de hash obligaría a que todos vuelvan a
+> poner su contraseña. Queda escrito como la mejora que es.
+
+## D2 — El costo 12: ¿por qué ese número?
+
+| | |
+|---|---|
+| **Qué significa** | `$2a$12$` — el `12` es el **costo**, y es un exponente: cada punto **duplica** el tiempo |
+| **Por qué 12** | Tarda del orden de **un cuarto de segundo** en una máquina de escritorio. Imperceptible para quien inicia sesión una vez; carísimo para quien quiera probar millones |
+| **Por qué no 4** | Sería rápido y **gratis de atacar** |
+| **Por qué no 20** | Cada inicio de sesión tardaría **minutos** |
+
+> **Y es ajustable sin cambiar de función, que es la gracia de bcrypt:** el día
+> que 12 sea poco, se sube a 13 y los hashes viejos **siguen verificando** —el
+> costo va escrito dentro del hash—.
+
+## D3 — La sesión: ¿cookie de servidor o JWT?
+
+| Opción | Argumento |
+|---|---|
+| **Cookie con sesión en el servidor** | **Se puede revocar**: se borra la sesión y listo. Es más seguro |
+| **JWT** ✅ | No necesita que el servidor recuerde nada. **Y es lo que el curso enseña** |
+
+**Lo que decide, y conviene ser honesto:** la cookie con estado en el servidor
+es **mejor** para una aplicación como esta. El JWT se elige porque es el
+mecanismo que el estudiante va a encontrar en todas partes, y porque **no poder
+revocarlo es en sí una lección**: obliga a entender por qué la duración es
+corta.
+
+> **Lo que se pierde está escrito en el plan:** un token no se puede apagar. Si
+> alguien se lo roba, sirve hasta que venza.
+
+## D4 — Los permisos: ¿dentro del token, o se consultan?
+
+**Se consultan.** Es la decisión más importante de la versión.
+
+| Opción | Argumento |
+|---|---|
+| **En el token** | **Una consulta menos por petición.** El token ya trae todo: se lee y se decide |
+| **Consultados** ✅ | **Quitar un permiso surte efecto de inmediato** |
+
+**Lo que decide:**
+
+```
+09:00  Ana recibe un token que dice: puede entrar a interfaz.usuarios
+09:30  se le quita ese permiso a su rol, en la base
+09:31  Ana sigue entrando: su token todavia dice que puede
+       ...hasta que venza, una hora despues
+```
+
+**Una hora de permiso que ya se le quitó.** Y el caso que importa no es Ana
+olvidadiza: es alguien a quien se le retiró el acceso por una razón.
+
+> **Es el criterio 7, y está escrito para forzar esta decisión:** *«quitarle un
+> permiso a un rol surte efecto sin volver a identificarse»*. Con los permisos
+> en el token, ese criterio **no se puede cumplir**.
+>
+> **Lo que cuesta:** una consulta a la base por operación. Es el precio, y es
+> barato: el procedimiento son tres `JOIN` sobre tablas con índice.
+
+## D5 — El permiso: ¿el `JOIN` en C#, o el procedimiento?
+
+**El procedimiento**, `verificar_acceso_ruta`, que **ya existía en la base
+desde el primer día** sin que nadie lo llamara.
+
+| Opción | Argumento |
+|---|---|
+| **El `JOIN` en C#** | Se lee sin saber plpgsql, y está en el mismo lenguaje que el resto |
+| **El procedimiento** ✅ | **La regla vive en un solo sitio** |
+
+**Lo que decide:** repetir el `JOIN` en C# deja la regla del acceso en dos
+lugares, y el día que cambie, cambia en uno.
+
+> **Y hay un `JOIN` de permisos escrito en C#, en `RutasPermitidasAsync`.**
+> Conviene decir por qué no contradice esto: **no decide nada**. Es una lista
+> para dibujar un menú. La **decisión** —si una operación entra o no— la toma
+> el procedimiento, y solo él.
+
+## D6 — El 403: ¿un filtro, o una línea en cada método?
+
+**Un filtro**, `[ExigePermiso]`.
+
+| Opción | Argumento |
+|---|---|
+| **Una línea al principio de cada método** | Se ve dónde está. Nada de «magia» |
+| **Un atributo** ✅ | **No se puede olvidar** |
+
+**Lo que decide:** con la línea a mano, el día que alguien escriba un endpoint
+nuevo y se le olvide, **ese endpoint queda abierto** — y nadie lo nota, porque
+funciona. El atributo está en la declaración del controlador, a la vista de
+cualquiera que lo abra.
+
+## D7 — `ClockSkew`: ¿por qué tocarlo?
+
+Por defecto ASP.NET perdona **cinco minutos** de desajuste de reloj al validar
+que un token no haya vencido. Es razonable en producción —los relojes de dos
+servidores no coinciden al segundo— y **arruina la demostración**: un token
+vencido responde **200** durante cinco minutos, y el estudiante concluye que su
+código está mal.
+
+**Se pone en cero**, y queda escrito aquí para que la decisión se vea.
+
+## D8 — El token en el navegador: ¿`localStorage` o el circuito?
+
+**El circuito.** En Blazor Server el token puede quedarse **en memoria del
+servidor** y no bajar nunca al navegador.
+
+| Opción | Argumento |
+|---|---|
+| **`localStorage`** | Sobrevive al F5. Es lo que se hace en React, Angular, Blazor WebAssembly |
+| **El circuito** ✅ | **El token no baja al navegador.** Ningún script de la página lo puede leer |
+
+> **Lo que se pierde:** recargar con F5 cierra la sesión. Para el curso es el
+> cambio correcto, y es una ventaja real de Blazor Server que vale la pena
+> nombrar — en un front que corre en el navegador **no hay** esta opción.
+
+## D9 — Lo que NO se investigó, y por qué
+
+| | |
+|---|---|
+| **Refrescar el token** | Trae su propio problema sin resolver: cómo se revoca el *refresh token*. Con una hora, volver a identificarse alcanza |
+| **OAuth / OpenID Connect** | Delegar la identidad a Google o Microsoft es lo que se hace en producción, y **esconde exactamente lo que esta versión existe para enseñar** |
+| **Permisos por operación** | La tabla `ruta` trae `permiso.crear` y `permiso.eliminar`, así que la base lo soportaría. Los diez criterios piden protección **por interfaz** |
+| **Auditoría** (quién hizo qué) | Es un requisito real que el curso no plantea |

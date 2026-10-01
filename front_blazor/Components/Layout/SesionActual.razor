@@ -1,0 +1,36 @@
+@inject EstadoSesion Estado
+@inject NavigationManager Navegador
+@implements IDisposable
+
+@*
+   Quien esta identificado, y como salir. Pequeno, y hace falta: sin esto nadie
+   sabe con que sesion esta mirando — y el criterio 8 es justamente que el menu
+   cambie segun el rol, asi que hay que poder ver CUAL rol.
+*@
+@if (Estado.Identificado)
+{
+    <div class="sesion-actual">
+        <span>
+            <strong>@Estado.Email</strong>
+            @foreach (var r in Estado.Roles)
+            {
+                <span class="etiqueta">@r</span>
+            }
+        </span>
+        <button class="plano" @onclick="Salir">Salir</button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Estado.Cambio += Redibujar;
+
+    private void Redibujar() => InvokeAsync(StateHasChanged);
+
+    private void Salir()
+    {
+        Estado.Salir();
+        Navegador.NavigateTo("/sesion");
+    }
+
+    public void Dispose() => Estado.Cambio -= Redibujar;
+}

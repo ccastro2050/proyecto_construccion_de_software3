@@ -50,6 +50,16 @@ services:
       # se resuelven por nombre. Esta variable SOBREESCRIBE el valor de
       # appsettings.json (ASP.NET lee "ConnectionStrings__X" así).
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=bdfacturas_postgres_local;Username=postgres;Password=Construccion123!"
+      # v3 — la clave del token. Aqui esta en claro a proposito:
+      # es una clave de DESARROLLO y este repositorio es material de
+      # curso. En un sistema real sale de un gestor de secretos, y lo
+      # que importa es que el codigo la lea de la configuracion y no
+      # la lleve escrita adentro — eso es lo que hace posible
+      # cambiarla sin recompilar.
+      Jwt__Key: "ClaveDeDesarrolloDelCursoConstruccionDeSoftware_2026_2_NoEsUnSecreto!"
+      Jwt__Issuer: "ApiFacturas"
+      Jwt__Audience: "FrontFacturas"
+      Jwt__DuracionMinutos: "60"
     depends_on:
       postgres:
         condition: service_healthy

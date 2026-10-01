@@ -168,3 +168,19 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: 22px 0; }
     background: var(--suave); border: 1px solid var(--borde);
     border-radius: 11px; font-size: .8rem;
 }
+
+/* --- v3: quien esta identificado ---------------------------------------- */
+.sesion-actual {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+    margin-bottom: 20px; padding: 8px 12px;
+    background: var(--suave); border: 1px solid var(--borde); border-radius: 6px;
+    font-size: .88rem;
+}
+
+/* --- v3: la pared de «identifiquese primero» --------------------------- */
+.sin-sesion {
+    padding: 32px; text-align: center;
+    background: var(--suave); border: 1px solid var(--borde); border-radius: 8px;
+}
+.sin-sesion h2 { margin-bottom: 8px; }

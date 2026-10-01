@@ -1,6 +1,11 @@
 @page "/personas"
 @inject ServicioPersona Servicio
-@rendermode InteractiveServer
+@inject EstadoSesion Estado
+@inject NavigationManager Navegador
+@* El prerender se apaga porque EstadoSesion es `scoped` al CIRCUITO:
+   con el encendido, Blazor dibuja la pagina una vez ANTES de que el
+   circuito conecte, con un EstadoSesion distinto y vacio — y la
+   interfaz parpadearia entre «identifiquese» y los datos. *@
 
 <h1>Personas</h1>
 
@@ -88,7 +93,26 @@ else
     private string? aviso;
     private bool avisoEsError;
 
-    protected override async Task OnInitializedAsync() => await Cargar();
+    protected override async Task OnInitializedAsync()
+    {
+        // v3 — SIN SESION NO SE LE PIDE NADA A LA API.
+        //
+        // No es la proteccion -la proteccion es el 401 que responde la API-
+        // sino cortesia: sin token, la peticion traeria un 401 y la persona
+        // veria un error en vez de entender que le falta identificarse.
+        //
+        // OJO CON LO QUE ESTO *NO* HACE: no comprueba PERMISOS. Si alguien
+        // identificado escribe esta direccion a mano sin tener el permiso, la
+        // interfaz se abre, le pide los datos a la API, y la API responde 403.
+        // Eso es exactamente lo que tiene que pasar — y es el criterio 9.
+        if (!Estado.Identificado)
+        {
+            Navegador.NavigateTo("/sesion");
+            return;
+        }
+
+        await Cargar();
+    }
 
     private async Task Cargar()
     {

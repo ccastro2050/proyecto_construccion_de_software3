@@ -1,0 +1,135 @@
+@page "/sesion"
+@inject ServicioSesion Servicio
+@inject EstadoSesion Estado
+@inject NavigationManager Navegador
+
+@*
+   ============================================================
+   LA INTERFAZ DE IDENTIFICACION.
+
+   Tres detalles que no son de adorno:
+
+   1. EL CAMPO DE CONTRASENA ES type="password". No para que se vea bonito:
+      para que no quede en la pantalla de alguien que pase por detras, y para
+      que el navegador no lo ofrezca en el autocompletado como texto.
+
+   2. EL MENSAJE DE ERROR ES UNO SOLO. No dice «ese correo no existe» ni «la
+      contrasena esta mal»: dice las dos cosas juntas. Distinguirlos le
+      confirma a un desconocido CUALES correos si existen, y con una lista de
+      correos validos, probar contrasenas vale la pena.
+
+   3. PRERENDER APAGADO. Blazor Server dibuja la pagina dos veces por defecto
+      -una en el servidor sin circuito, otra cuando el circuito conecta- y en
+      la primera el EstadoSesion es otro. Con el prerender encendido, esta
+      interfaz parpadearia entre «no identificado» y «identificado».
+   ============================================================
+*@
+
+<h1>Iniciar sesion</h1>
+
+@if (Estado.Identificado)
+{
+    <div class="aviso aviso-bien" role="alert">
+        Ya esta identificado como <strong>@Estado.Email</strong>.
+    </div>
+    <div class="botones">
+        <button class="primario" @onclick="AlInicio">Ir al inicio</button>
+        <button class="peligro" @onclick="Salir">Salir</button>
+    </div>
+}
+else
+{
+    @if (aviso is not null)
+    {
+        <div class="aviso aviso-error" role="alert">@aviso</div>
+    }
+
+    <section class="tarjeta">
+        <div class="campos">
+            <label>
+                Correo
+                <input type="email" @bind="email" @bind:event="oninput"
+                       placeholder="admin@@correo.com" />
+            </label>
+            <label>
+                Contrasena
+                @* type="password" — no se muestra en pantalla *@
+                <input type="password" @bind="contrasena" @bind:event="oninput"
+                       @onkeyup="PorSiLeDioEnter" />
+            </label>
+        </div>
+
+        <div class="botones">
+            <button class="primario" disabled="@entrando" @onclick="Entrar">
+                @(entrando ? "Entrando…" : "Entrar")
+            </button>
+        </div>
+    </section>
+
+    <p class="nota">
+        <strong>Para probar el control de acceso</strong> hacen falta al menos
+        dos sesiones distintas, y las contrasenas estan en el
+        <code>7_quickstart.md</code> de esta version:
+    </p>
+
+    <table>
+        <thead><tr><th>Correo</th><th>Rol</th><th>Entra a</th></tr></thead>
+        <tbody>
+            <tr><td><code>admin@@correo.com</code></td><td>Administrador</td><td>todo</td></tr>
+            <tr><td><code>vendedor1@@correo.com</code></td><td>Vendedor, Cajero</td><td>inicio, facturas, clientes</td></tr>
+            <tr><td><code>cliente1@@correo.com</code></td><td>Cliente</td><td>inicio, productos</td></tr>
+        </tbody>
+    </table>
+}
+
+@code {
+    private string email = "";
+    private string contrasena = "";
+    private bool entrando;
+    private string? aviso;
+
+    private async Task PorSiLeDioEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") { await Entrar(); }
+    }
+
+    private async Task Entrar()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(contrasena))
+        {
+            aviso = "Escriba el correo y la contrasena.";
+            return;
+        }
+
+        entrando = true;
+        aviso = null;
+        var r = await Servicio.IniciarAsync(email.Trim(), contrasena);
+
+        if (!r.Bien)
+        {
+            entrando = false;
+            // La contrasena SI se borra al fallar -a diferencia del resto de
+            // los formularios, donde lo escrito se conserva-. Una contrasena
+            // equivocada en pantalla no ayuda a nadie.
+            contrasena = "";
+            aviso = r.Mensaje;
+            return;
+        }
+
+        // Los permisos se piden EN SEGUIDA, con el token recien recibido: son
+        // los que arman el menu.
+        var rutas = await Servicio.MisRutasAsync(r.Dato!.Token);
+        Estado.Entrar(r.Dato.Token, r.Dato.Email, r.Dato.Roles, rutas);
+        entrando = false;
+
+        Navegador.NavigateTo("/");
+    }
+
+    private void AlInicio() => Navegador.NavigateTo("/");
+
+    private void Salir()
+    {
+        Estado.Salir();
+        contrasena = "";
+    }
+}

@@ -14,7 +14,32 @@
 </head>
 
 <body>
-    <Routes />
+    <!-- ============================================================
+         EL MODO DE RENDERIZADO, DECLARADO UNA VEZ PARA TODO EL ARBOL.
+
+         `InteractiveServer` = Blazor Server: el componente corre EN EL
+         SERVIDOR y el navegador recibe el HTML ya armado, manteniendo una
+         conexion -un «circuito»- para los eventos.
+
+         POR QUE AQUI Y NO EN CADA INTERFAZ: porque asi tambien es interactivo
+         el LAYOUT, y con el el menu. Con el modo declarado interfaz por
+         interfaz, el layout se queda estatico — y un componente estatico no
+         corre en el circuito, sino en el scope de la peticion HTTP, donde
+         EstadoSesion es otro y esta vacio. El menu nunca habria visto la
+         sesion, sin dar un solo error.
+
+         LA v3 ES LA QUE LO APAGA, y en la v1 y la v2 estaba encendido:
+         hasta que aparecio la sesion no habia nada en el circuito de lo
+         que la interfaz dependiera.
+
+         `prerender: false` = NO se dibuja una primera vez antes de que el
+         circuito conecte. Por defecto Blazor lo hace -para que algo aparezca
+         rapido- y eso dibujaria la pagina con un EstadoSesion vacio: la
+         interfaz parpadearia entre «identifiquese» y los datos. Lo que se
+         pierde es ese destello temprano, y a cambio la sesion se ve bien
+         desde el primer dibujo.
+         ============================================================ -->
+    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 

@@ -19,6 +19,27 @@ builder.Services.AddRazorComponents()
 var urlApi = builder.Configuration["UrlApi"] ?? "http://localhost:8044";
 
 // ============================================================
+// v3 — LA SESION
+//
+// EstadoSesion es `scoped`, que en Blazor Server significa «uno por
+// CIRCUITO»: cada navegador conectado tiene el suyo, y el token de uno no se
+// mezcla con el de otro.
+//
+// Si fuera `singleton` —que es el error facil, porque «total, es una sola
+// aplicacion»— habria UN token para todos los que entren: el ultimo que se
+// identifique le cambiaria la sesion a los demas.
+// ============================================================
+builder.Services.AddScoped<EstadoSesion>();
+
+// El servicio de la sesion es el UNICO que funciona sin token: no puede exigir
+// lo que todavia no existe.
+builder.Services.AddHttpClient<ServicioSesion>(cliente =>
+{
+    cliente.BaseAddress = new Uri(urlApi);
+    cliente.Timeout = TimeSpan.FromSeconds(10);
+});
+
+// ============================================================
 // UN SERVICIO POR RECURSO, y DOCE lineas porque son doce recursos.
 //
 // Un `ApiService.Listar("producto")` generico seria mas corto: con una tabla ni

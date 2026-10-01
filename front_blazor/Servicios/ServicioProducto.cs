@@ -16,9 +16,25 @@ namespace FrontFacturas.Servicios;
 // `ApiService.Listar("producto")` es más corto, y con una sola tabla ni se
 // nota. Con doce, el que lee el código ya no sabe qué rutas existen.
 // ============================================================
-public class ServicioProducto(HttpClient cliente)
+public class ServicioProducto(HttpClient cliente, EstadoSesion sesion)
 {
     private const string Ruta = "api/producto";
+    /// <summary>Pone el token en la cabecera antes de cada peticion.
+    ///
+    /// Se llama en TODOS los metodos, sin excepcion: un metodo al que se le
+    /// olvide responde 401 y el que lo lea va a creer que la sesion vencio.
+    ///
+    /// Y si no hay token, la cabecera se limpia en vez de dejar la anterior:
+    /// despues de salir, las peticiones tienen que fallar con 401, no seguir
+    /// funcionando con un token que ya nadie deberia tener.</summary>
+    private void Autorizar()
+    {
+        cliente.DefaultRequestHeaders.Authorization =
+            string.IsNullOrWhiteSpace(sesion.Token)
+                ? null
+                : new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", sesion.Token);
+    }
+
 
     private static readonly JsonSerializerOptions Opciones =
         new() { PropertyNameCaseInsensitive = true };
@@ -36,6 +52,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.GetAsync(Ruta);
 
             // 204: la tabla está vacía. NO es un error, y tratarlo como error
@@ -73,6 +90,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.GetAsync($"{Ruta}/{codigo}");
             if (!r.IsSuccessStatusCode)
                 return Resultado<Producto>.Falla(await MensajeDe(r));
@@ -91,6 +109,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PostAsJsonAsync(Ruta, p);
             if (!r.IsSuccessStatusCode)
                 return Resultado<Producto>.Falla(await MensajeDe(r));
@@ -108,6 +127,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PutAsJsonAsync($"{Ruta}/{codigo}", p);
             if (!r.IsSuccessStatusCode)
                 return Resultado<Producto>.Falla(await MensajeDe(r));
@@ -125,6 +145,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PatchAsJsonAsync($"{Ruta}/{codigo}", parcial);
             if (!r.IsSuccessStatusCode)
                 return Resultado<Producto>.Falla(await MensajeDe(r));
@@ -140,6 +161,7 @@ public class ServicioProducto(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.DeleteAsync($"{Ruta}/{codigo}");
             if (!r.IsSuccessStatusCode)
                 return Resultado<bool>.Falla(await MensajeDe(r));
@@ -167,6 +189,18 @@ public class ServicioProducto(HttpClient cliente)
             HttpStatusCode.NotFound => "No se encontró ese producto.",
             HttpStatusCode.UnprocessableEntity => "Faltan datos obligatorios.",
             HttpStatusCode.BadRequest => "Los datos enviados no son válidos.",
+            // v3 — LOS DOS CODIGOS DEL CONTROL DE ACCESO, y decirlos bien
+            // es la mitad de la leccion:
+            //
+            //   401  «no se quien es usted»   -> no hay token, o vencio
+            //   403  «se quien es, y no puede» -> el token sirve, el rol no
+            //
+            // Si los dos dijeran «error del servicio», la persona no tendria
+            // forma de saber si le falta entrar o le falta permiso.
+            HttpStatusCode.Unauthorized =>
+                "Su sesion no es valida o ya vencio. Vuelva a iniciar sesion.",
+            HttpStatusCode.Forbidden =>
+                "Su rol no tiene permiso para esta operacion.",
             _ => "El servicio respondió con un problema. Intente de nuevo."
         };
     }

@@ -1,6 +1,11 @@
 @page "/usuarios"
 @inject ServicioUsuario Servicio
-@rendermode InteractiveServer
+@inject EstadoSesion Estado
+@inject NavigationManager Navegador
+@* El prerender se apaga porque EstadoSesion es `scoped` al CIRCUITO:
+   con el encendido, Blazor dibuja la pagina una vez ANTES de que el
+   circuito conecte, con un EstadoSesion distinto y vacio — y la
+   interfaz parpadearia entre «identifiquese» y los datos. *@
 
 <h1>Usuarios</h1>
 
@@ -21,6 +26,10 @@
         </label>
         <label>
             Contrasena
+            @* type="password": no se ve en pantalla. Y la tabla de abajo NO
+               tiene columna de contrasena, a proposito: la API no la devuelve
+               -ni la clave ni su hash- porque una respuesta no debe traer un
+               secreto que nadie pidio. Al editar, vacio = «no la cambie». *@
             <input type="password" @bind="enEdicion.Contrasena" placeholder="" />
         </label>
     </div>
@@ -56,12 +65,12 @@ else if (lista.Count == 0)
 else
 {
     <table>
-        <thead><tr><th>Email</th><th>Contrasena</th><th></th></tr></thead>
+        <thead><tr><th>Email</th><th></th></tr></thead>
         <tbody>
             @foreach (var e in lista)
             {
                 <tr>
-                    <td>@e.Email</td><td>@e.Contrasena</td>
+                    <td>@e.Email</td>
                     <td class="acciones">
                         <button @onclick="() => Editar(e)">Editar</button>
                         <button class="peligro" @onclick="() => Quitar(e.Email)">Quitar</button>
@@ -80,7 +89,26 @@ else
     private string? aviso;
     private bool avisoEsError;
 
-    protected override async Task OnInitializedAsync() => await Cargar();
+    protected override async Task OnInitializedAsync()
+    {
+        // v3 — SIN SESION NO SE LE PIDE NADA A LA API.
+        //
+        // No es la proteccion -la proteccion es el 401 que responde la API-
+        // sino cortesia: sin token, la peticion traeria un 401 y la persona
+        // veria un error en vez de entender que le falta identificarse.
+        //
+        // OJO CON LO QUE ESTO *NO* HACE: no comprueba PERMISOS. Si alguien
+        // identificado escribe esta direccion a mano sin tener el permiso, la
+        // interfaz se abre, le pide los datos a la API, y la API responde 403.
+        // Eso es exactamente lo que tiene que pasar — y es el criterio 9.
+        if (!Estado.Identificado)
+        {
+            Navegador.NavigateTo("/sesion");
+            return;
+        }
+
+        await Cargar();
+    }
 
     private async Task Cargar()
     {
@@ -131,7 +159,10 @@ else
 
     private void Editar(Usuario e)
     {
-        enEdicion = new Usuario { Email = e.Email, Contrasena = e.Contrasena };
+        // La contrasena NO se copia: la API ya no la devuelve, y aunque la
+        // devolviera no habria que mostrarla. El campo queda VACIO, y vacio
+        // significa «dejela como esta».
+        enEdicion = new Usuario { Email = e.Email, Contrasena = "" };
         editando = true;
         aviso = null;
     }

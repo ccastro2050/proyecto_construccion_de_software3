@@ -1,155 +1,180 @@
-# Plan técnico — Versión 3: autenticación y autorización
+# Plan técnico — Versión 3: el control de acceso
 
-> **Nota (agosto de 2026):** el curso adoptó **Dapper** como
-> micro-ejecutor en TODOS los repositorios: el SQL sigue escrito a mano
-> y parametrizado; cambió el mapeo (`QueryAsync`/`ExecuteAsync` en vez
-> del ciclo DataReader) y los SPs se llaman con `DynamicParameters`.
-> Las tablas de "calco" entre dialectos siguen valiendo para los
-> PROVEEDORES (Npgsql/SqlClient/MySqlConnector) que Dapper usa por debajo.
-
-
-> **Versión 3** · CÓMO construir lo especificado en [2_spec.md](2_spec.md).
-> El porqué de cada decisión: [4_research.md](4_research.md) · contratos:
-> [6_contracts.md](6_contracts.md) · orden: [8_tasks.md](8_tasks.md).
-> El stack solo suma UN paquete: **BCrypt.Net-Next** (el hash de usuario).
+> | | |
+> |---|---|
+> | **Qué hay que construir** | [2_spec.md](2_spec.md) |
+> | **Los formatos exactos** | [6_contracts.md](6_contracts.md) |
+> | **El orden** | [8_tasks.md](8_tasks.md) |
+> | **Los conceptos** | [CONCEPTOS_CONTROL_DE_ACCESO.md](../../../CONCEPTOS_CONTROL_DE_ACCESO.md) |
 
 ---
 
-## 1. Qué archivos se AGREGAN (v1 y v2 no se tocan, salvo los de siempre)
+## 1. Lo único que se agrega a la pila
 
-```
-api_facturas/
-├── ApiFacturas.csproj                ★ CRECE: paquete BCrypt.Net-Next
-├── Program.cs                        ★ CRECE: 16 AddScoped nuevos + version "v3"
-├── Modelos/          Empresa, Cliente, Vendedor, Usuario, Rol, Ruta,
-│                     RolUsuario, RutaRol                       (8 nuevos)
-├── Peticiones/       {Empresa|Cliente|Vendedor|Usuario|Rol|Ruta}Crear/
-│                     Reemplazo/Actualizar (18) + RolUsuarioCrear +
-│                     RutaRolCrear                              (20 nuevas)
-├── Controllers/      EmpresaController, ClienteController,
-│                     VendedorController, UsuarioController,
-│                     RolController, RutaController,
-│                     RolUsuarioController, RutaRolController   (8 nuevos)
-├── Servicios/        IServicioX + ServicioX por entidad        (16 nuevos)
-├── Repositorios/     IRepositorioX + RepositorioXPostgres     (16 nuevos)
-└── pruebas/Programa.cs               ★ CRECE: repo falso de empresa
-```
-
-Los 5 moldes (empresa, cliente, vendedor, rol, ruta) se **calcan** de
-producto/persona cambiando tabla, PK y campos. Lo genuinamente nuevo de la
-v3 son usuario (§3) y los puentes (§4).
-
-## 2. Los moldes: qué cambia en cada calco
-
-| Entidad | PK (tipo) | Petición Crear exige | Notas del calco |
-|---|---|---|---|
-| Empresa | `codigo` string | codigo 1-10, nombre 1-100 | Idéntica a persona con 2 campos |
-| Cliente | `id` int SERIAL | fkcodpersona (req); credito ≥ 0 **opcional** (si no llega → 0); fkcodempresa **opcional** | La PK NO viaja al crear (la genera la BD); rutas `{id:int}` |
-| Vendedor | `id` int SERIAL | carnet ≥ 0, direccion 1-100, fkcodpersona | ídem cliente |
-| Rol | `id` int SERIAL | nombre 1-50 | El molde mínimo |
-| Ruta | `id` int SERIAL | ruta 1-100, descripcion 1-200 | `ruta` es UNIQUE: duplicado → 500 del motor |
-
-Detalles de implementación de los calcos:
-- INSERT de cliente con opcionales: `credito` se envía siempre (el
-  controller pone 0 si no llegó); `fkcodempresa` viaja como
-  `DBNull.Value` cuando es null (`AddWithValue("@fkcodempresa",
-  (object?)valor ?? DBNull.Value)`).
-- Lectura de columnas NULL: `lector.IsDBNull(n) ? null : lector.GetString(n)`.
-- PK SERIAL: las rutas usan `{id:int}` y `ObtenerPorIdAsync(int id)` —
-  el resto del molde igual.
-
-## 3. Usuario: el hash vive en el repositorio
-
-### 3.1 Modelo y peticiones
-
-```csharp
-public class Usuario { public required string Email { get; set; } }
-// ¡SIN propiedad de contraseña! Lo que no está en el modelo de lectura
-// no puede filtrarse a una respuesta (RNF3).
-
-UsuarioCrear      { Email (req, 1-100), Contrasena (req, 6-200) }
-UsuarioReemplazo  { Contrasena (req, 6-200) }        // el email va en la URL
-UsuarioActualizar { Contrasena (opcional, 6-200) }   // PATCH: {} → 400
-```
-
-### 3.2 El repositorio hashea (nadie más)
-
-```csharp
-// ApiFacturas.csproj: <PackageReference Include="BCrypt.Net-Next" Version="4.*" />
-using BC = BCrypt.Net.BCrypt;
-
-public Task CrearAsync(string email, string contrasena)
-    // INSERT INTO usuario (email, contrasena) VALUES (@email, @hash)
-    // con: var hash = BC.HashPassword(contrasena, workFactor: 12);
-
-public Task<bool?> VerificarContrasenaAsync(string email, string contrasena)
-    // SELECT contrasena FROM usuario WHERE email = @email
-    // sin fila → null (404) · con fila → BC.Verify(contrasena, hash) (true/false)
-```
-
-Los SELECT de listar/obtener proyectan **solo `email`**. `ActualizarAsync`
-recibe la contraseña en claro y guarda el hash (PUT y PATCH pasan por ahí).
-
-### 3.3 Servicio y controller
-
-`ServicioUsuario.VerificarContrasenaAsync` → devuelve el trío del
-contrato: el controller lo traduce a 200 / 401 / 404. El resto es el molde
-(con el detalle de que crear recibe email+contrasena y actualizar solo
-contrasena).
-
-## 4. Las tablas puente: el patrón nuevo
-
-```csharp
-public interface IRepositorioRolUsuario
-{
-    Task<List<RolUsuario>> ObtenerTodosAsync(int limite);
-    Task<List<RolUsuario>> ObtenerPorUsuarioAsync(string fkemail);
-    Task<List<RolUsuario>> ObtenerPorRolAsync(int fkidrol);
-    Task CrearAsync(RolUsuario asignacion);
-    Task<int> EliminarAsync(string fkemail, int fkidrol);   // ¡AMBAS columnas!
-}
-// DELETE FROM rol_usuario WHERE fkemail = @fkemail AND fkidrol = @fkidrol
-```
-
-- Sin `ActualizarAsync`: una asignación se quita y se pone, no se edita.
-- `RutaRol` es el gemelo con (fkidruta int, fkidrol int).
-- POST duplicado viola la PK compuesta → 500 del motor (comportamiento
-  consistente con el resto).
-- Prefijos: `/api/rol-usuario` (kebab-case: dos palabras) y `/api/rutarol`.
-
-## 5. Program.cs: la última vez que el ensamblador crece "a mano"
-
-16 `AddScoped` nuevos (8 repos + 8 servicios), mismo patrón de siempre, y
-`"version": "v3"` en el diagnóstico. Nota consciente: la lista ya es larga
-y repetitiva — ESE dolor es el argumento de la fábrica real que la v4
-introduce al llegar el segundo motor. Se deja doler a propósito.
-
-## 6. Docker
-
-Sin cambios: mismos 3 servicios y puertos. `dotnet watch` recompila al
-agregar archivos; el paquete BCrypt exige `docker compose restart
-api-facturas` tras editar el `.csproj` (watch reinicia el restore solo,
-pero el reinicio limpio evita sustos).
-
-## 7. Chequeo de constitución
-
-> **La compuerta 2** del método (ver [SDD_SPECKIT](../../../SDD_SPECKIT.md)):
-> antes de pasar a `8_tasks.md` se revisa la
-> [constitución](../../1_constitution.md) **artículo por artículo**. Si algo
-> no cumple, o se corrige el plan, o se enmienda la constitución. Nunca se
-> deja pasar "por esta vez".
-
-| Artículo | Cómo lo cumple esta versión |
+| | |
 |---|---|
-| **1** — El curso es POR VERSIONES y la especificación manda | El alcance de esta versión es el que declara [2_spec.md](2_spec.md) §2, y **no anticipa** nada de las siguientes. Cierra con commit y tag. |
-| **2** — Stack: C# y ASP.NET Core, con el SQL a la vista | C# sobre ASP.NET Core, SQL escrito a mano y **siempre parametrizado**, sin ORM de entidades. Los paquetes son los que el artículo permite (§1 de este plan). |
-| **3** — Arquitectura en capas con interfaces, desde el día 1 | Controlador → interfaz de servicio → interfaz de repositorio → repositorio (§3 de este plan). Solo el ensamblador conoce clases concretas. |
-| **4** — Un solo comando | `docker compose up -d --build` deja la versión funcionando (§5 de este plan). |
-| **5** — La base de datos viene DADA | La BD `bdfacturas` viene dada por los scripts de `db/`; esta versión solo nombra las tablas que su alcance le permite ([5_data_model.md](5_data_model.md)). |
-| **6** — Todo en español, comentado para principiantes | Nombres, rutas y mensajes en español, con comentarios línea a línea en el código. |
-| **7** — Contratos exactos | [6_contracts.md](6_contracts.md) fija verbos, rutas, códigos y formatos exactos, incluidos los desenlaces de error. |
-| **8** — Convenciones fijas | Puertos, rutas, sobre de respuesta y catálogo de errores, tal como los fija el artículo. |
+| **`Microsoft.AspNetCore.Authentication.JwtBearer`** | Valida el token en cada petición |
 
-**Complejidad justificada:** si esta versión se desvía de algún artículo,
-la desviación va aquí, con la alternativa más simple que se descartó y por
-qué no sirvió. Sin desviaciones anotadas, se entiende que no las hay.
+**Y la versión no se adivinó:** es la **9.0.10**, que es la que ya corre sobre
+`net10.0` en `proyecto_construccion1/api_generica_csharp`. Elegir un número
+por intuición es lo que hace perder una tarde: se copia de un proyecto que
+compila.
+
+> **`BCrypt.Net-Next` ya estaba** desde antes, y el hash de la contraseña **ya
+> funcionaba**. Lo que faltaba no era el hash: era la **puerta**.
+
+## 2. Las tres piezas, y por qué son tres
+
+```
+   credenciales          token            permiso
+        │                  │                 │
+   AUTENTICA ────────►  SESIÓN  ────────► AUTORIZA
+   ¿quién es?         (lo recuerda)       ¿puede esto?
+        │                  │                 │
+  ServicioSesion      JwtBearer        ExigePermiso
+   + BCrypt           (middleware)   + verificar_acceso_ruta
+```
+
+| | Archivo | Qué resuelve |
+|---|---|---|
+| **1** | `Servicios/ServicioSesion.cs` | Compara el hash y **arma** el token |
+| **2** | `Program.cs` → `AddJwtBearer` | **Valida** el token en cada petición. **401** si no sirve |
+| **3** | `Autorizacion/ExigePermisoAttribute.cs` | Pregunta el permiso. **403** si el rol no puede |
+
+> **Sin la 1 las otras dos no tienen a quién validar. Sin la 2, la 3 no sabe
+> quién pregunta. Y sin la 3, el sistema sabe quién entra y le deja hacer todo.**
+> El orden no es un gusto: cada una necesita la anterior.
+
+## 3. Los archivos nuevos
+
+### 3.1 La sesión
+
+```
+Modelos/ConfiguracionJwt.cs       los 4 valores con los que se firma y se valida
+Modelos/Sesion.cs                 lo que recibe quien se identifica
+Peticiones/SesionCrear.cs         { email, contrasena }  ← EN EL CUERPO
+Servicios/IServicioSesion.cs
+Servicios/ServicioSesion.cs       compara el hash y arma el token
+Controllers/SesionController.cs   POST /api/sesion — el único [AllowAnonymous]
+```
+
+**Dos decisiones de diseño que vale la pena leer dos veces:**
+
+| | |
+|---|---|
+| **Las credenciales van en el CUERPO** | El endpoint de la versión anterior las recibía por la URL: `?valor_usuario=…&valor_contrasena=…`. **Una contraseña en la URL queda en el historial del navegador y en los logs de cualquier proxy del camino.** Ese endpoint se queda —no se toca lo cerrado— y el inicio de sesión de verdad usa el cuerpo |
+| **El mismo error para los dos casos** | Correo inexistente y contraseña equivocada responden **lo mismo**. Decir «ese correo no existe» le confirma a un desconocido **cuáles sí existen** — y con una lista de correos válidos, probar contraseñas vale la pena |
+
+### 3.2 El permiso
+
+```
+Repositorios/IRepositorioAcceso.cs
+Repositorios/RepositorioAccesoPostgres.cs   llama verificar_acceso_ruta
+Autorizacion/ExigePermisoAttribute.cs       el filtro que responde 403
+Controllers/PermisosController.cs           GET /api/permisos/mios, para el menú
+```
+
+**El atributo, que es la pieza central:**
+
+```csharp
+[Route("api/usuario")]
+[Authorize]                        // exige TOKEN      -> 401
+[ExigePermiso("interfaz.usuarios")] // exige PERMISO    -> 403
+public class UsuarioController : ControllerBase
+```
+
+| | Por qué así |
+|---|---|
+| **Es un FILTRO, no una línea al principio de cada método** | Si fuera una línea, el día que alguien escriba un endpoint nuevo y se le olvide, **ese endpoint queda abierto** — y nadie lo nota, porque funciona |
+| **Se consulta EN CADA PETICIÓN** | Es más trabajo —una consulta por operación— y es lo que hace que **quitarle un permiso surta efecto sin volver a identificarse** |
+| **El nombre de la ruta sale de la tabla `ruta`** | `interfaz.usuarios`, `interfaz.facturas`… son los valores que la base ya trae sembrados. No se inventan |
+
+### 3.3 La interfaz gráfica
+
+```
+Servicios/EstadoSesion.cs                quién está identificado, en ESTE circuito
+Servicios/ServicioSesion.cs              el único que funciona sin token
+Modelos/RespuestaSesion.cs
+Components/Pages/Sesion.razor            la interfaz de identificación
+Components/Layout/SesionActual.razor      quién está dentro, y cómo salir
+Components/Layout/NavMenu.razor           el menú ARMADO CON LOS PERMISOS
+```
+
+**Y doce archivos que crecen:** cada servicio del front suma un método
+`Autorizar()` que pone el token en la cabecera antes de cada petición.
+
+## 4. Las cuatro decisiones del front, con su razón
+
+### 4.1 El token vive en el SERVIDOR, no en el navegador
+
+`EstadoSesion` es `scoped`, que en Blazor Server significa **uno por
+circuito**: cada navegador conectado tiene el suyo.
+
+| | |
+|---|---|
+| **Qué se gana** | El token **nunca baja al navegador**. Ningún script de la página lo puede leer |
+| **Qué se pierde, y hay que decirlo** | Al recargar con F5 el circuito se cae y la sesión se va |
+
+> **Si fuera `singleton` —el error fácil, porque «total, es una sola
+> aplicación»— habría UN token para todos los que entren**, y el último que se
+> identificara le cambiaría la sesión a los demás.
+
+### 4.2 El token se manda a mano, no con un `DelegatingHandler`
+
+Lo elegante sería un handler que ponga la cabecera en todas las peticiones. **Y
+no se hace**, por una razón concreta: en Blazor Server la cadena de handlers de
+un `HttpClient` se arma **una vez por nombre de cliente** y se reutiliza, así
+que un handler que dependa de un servicio `scoped` puede recibir **el scope
+equivocado** — el token de otra sesión.
+
+> Es un problema conocido y **silencioso**. Inyectar `EstadoSesion` en cada
+> servicio es más largo de escribir y no tiene esa trampa.
+
+### 4.3 El modo de renderizado se declara UNA vez, y el dibujo previo se APAGA
+
+```razor
+<Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+```
+
+| | |
+|---|---|
+| **Por qué en `App.razor` y no en cada interfaz** | Así también es interactivo el **layout**, y con él el menú. Declarado interfaz por interfaz, el layout se queda **estático** — y un componente estático corre en el scope de la petición HTTP, no en el del circuito: **el menú nunca vería la sesión** |
+| **Por qué sin dibujo previo** | El dibujo previo ocurre **antes** de que el circuito exista, con un `EstadoSesion` vacío. La interfaz **parpadearía** entre «identifíquese» y los datos |
+
+> **Y esto es lo que la v3 cambia respecto a la v1 y la v2**, donde el dibujo
+> previo estaba encendido: hasta que apareció la sesión, no había nada en el
+> circuito de lo que la interfaz dependiera.
+
+### 4.4 El menú no es la protección, y la interfaz lo dice
+
+El menú se arma con `GET /api/permisos/mios`. **Y eso no protege nada:** es
+HTML que ya está en el navegador de quien pregunta, y la dirección se puede
+escribir a mano.
+
+> **Se comprueba así, y es el criterio 9:** identifíquese con un rol sin
+> permiso y **escriba la dirección a mano**. La interfaz se abre, le pide los
+> datos a la API, y la API responde **403**. Eso es lo que tiene que pasar.
+
+## 5. Los cinco tropiezos que esta versión tiene preparados
+
+| | Qué pasa | Cómo se ve |
+|---|---|---|
+| **1** | **El `ClockSkew` por defecto** | ASP.NET perdona **5 minutos** de reloj desadaptado. Un token vencido responde **200** durante cinco minutos, y parece que el código está mal. Se pone en cero |
+| **2** | **El 401 sin cuerpo** | ASP.NET responde el 401 con el cuerpo **vacío**, y la interfaz no tiene nada que mostrarle a la persona. Se arregla con `OnChallenge` |
+| **3** | **`UseAuthentication` después de `UseAuthorization`** | Compila, arranca, y **deja pasar todo**: el segundo no tiene a quién consultar |
+| **4** | **Una ruta que no está en la tabla** | `verificar_acceso_ruta` no la encuentra. Tiene que **fallar cerrado** —nadie entra— y no abierto |
+| **5** | **`EstadoSesion` como `singleton`** | Un token para todos. No da ningún error: da la sesión de otro |
+
+> **Los cinco pasan la compilación.** Tres de ellos —el 1, el 3 y el 5— dejan
+> el sistema **menos seguro de lo que parece**, que es la peor clase de error:
+> funciona, y por eso nadie lo mira.
+
+## 6. Lo que este plan deja FUERA, a propósito
+
+| | Por qué |
+|---|---|
+| **Refrescar el token** | Con una hora de duración, volver a identificarse alcanza. Un *refresh token* trae su propio problema —cómo se revoca— y el curso no lo pide |
+| **Recuperar la contraseña por correo** | Hace falta un servidor de correo. No lo pide el curso |
+| **Segundo factor** | Ídem |
+| **Revocar un token** | **No se puede**, y es una propiedad del diseño, no un olvido: un JWT está firmado y ya salió. Lo único que lo apaga es que venza — de ahí que la duración sea corta |
+| **Permisos por operación** (leer sí, borrar no) | La tabla `ruta` tiene `permiso.crear` y `permiso.eliminar` sembrados, así que la base lo soportaría. **La v3 protege por interfaz**, que es lo que los diez criterios piden |

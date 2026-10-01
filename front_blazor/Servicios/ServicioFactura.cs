@@ -22,9 +22,25 @@ namespace FrontFacturas.Servicios;
 // existir». Anular significa «que quede como anulada». Si fuera DELETE, el
 // que lea el codigo esperaria que la factura desapareciera.
 // ============================================================
-public class ServicioFactura(HttpClient cliente)
+public class ServicioFactura(HttpClient cliente, EstadoSesion sesion)
 {
     private const string Ruta = "api/factura";
+    /// <summary>Pone el token en la cabecera antes de cada peticion.
+    ///
+    /// Se llama en TODOS los metodos, sin excepcion: un metodo al que se le
+    /// olvide responde 401 y el que lo lea va a creer que la sesion vencio.
+    ///
+    /// Y si no hay token, la cabecera se limpia en vez de dejar la anterior:
+    /// despues de salir, las peticiones tienen que fallar con 401, no seguir
+    /// funcionando con un token que ya nadie deberia tener.</summary>
+    private void Autorizar()
+    {
+        cliente.DefaultRequestHeaders.Authorization =
+            string.IsNullOrWhiteSpace(sesion.Token)
+                ? null
+                : new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", sesion.Token);
+    }
+
 
     private static readonly JsonSerializerOptions Opciones =
         new() { PropertyNameCaseInsensitive = true };
@@ -41,6 +57,7 @@ public class ServicioFactura(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.GetAsync(Ruta);
             if (r.StatusCode == HttpStatusCode.NoContent)
                 return Resultado<List<Factura>>.Ok([]);
@@ -67,6 +84,7 @@ public class ServicioFactura(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.GetAsync($"{Ruta}/{numero}");
             if (!r.IsSuccessStatusCode)
                 return Resultado<Factura>.Falla(await MensajeDe(r));
@@ -91,6 +109,7 @@ public class ServicioFactura(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PostAsJsonAsync(Ruta, nueva);
             if (!r.IsSuccessStatusCode)
                 return Resultado<Factura>.Falla(await MensajeDe(r));
@@ -115,6 +134,7 @@ public class ServicioFactura(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PostAsync($"{Ruta}/{numero}/anular", null);
             if (!r.IsSuccessStatusCode)
                 return Resultado<bool>.Falla(await MensajeDe(r));
@@ -143,6 +163,18 @@ public class ServicioFactura(HttpClient cliente)
             // 409 al anular: ya estaba anulada. Anular dos veces no es un error
             // del sistema — es un aviso para la persona.
             HttpStatusCode.Conflict => "Esa factura ya estaba anulada.",
+            // v3 — LOS DOS CODIGOS DEL CONTROL DE ACCESO, y decirlos bien
+            // es la mitad de la leccion:
+            //
+            //   401  «no se quien es usted»   -> no hay token, o vencio
+            //   403  «se quien es, y no puede» -> el token sirve, el rol no
+            //
+            // Si los dos dijeran «error del servicio», la persona no tendria
+            // forma de saber si le falta entrar o le falta permiso.
+            HttpStatusCode.Unauthorized =>
+                "Su sesion no es valida o ya vencio. Vuelva a iniciar sesion.",
+            HttpStatusCode.Forbidden =>
+                "Su rol no tiene permiso para esta operacion.",
             _ => "El servicio respondio con un problema. Puede ser que no haya "
                + "stock suficiente para uno de los productos."
         };

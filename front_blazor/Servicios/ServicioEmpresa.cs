@@ -11,9 +11,25 @@ namespace FrontFacturas.Servicios;
 // Un servicio POR RECURSO, no un ApiService generico con la tabla como
 // parametro: con once recursos, el generico deja de decir que rutas existen.
 // ============================================================
-public class ServicioEmpresa(HttpClient cliente)
+public class ServicioEmpresa(HttpClient cliente, EstadoSesion sesion)
 {
     private const string Ruta = "api/empresa";
+    /// <summary>Pone el token en la cabecera antes de cada peticion.
+    ///
+    /// Se llama en TODOS los metodos, sin excepcion: un metodo al que se le
+    /// olvide responde 401 y el que lo lea va a creer que la sesion vencio.
+    ///
+    /// Y si no hay token, la cabecera se limpia en vez de dejar la anterior:
+    /// despues de salir, las peticiones tienen que fallar con 401, no seguir
+    /// funcionando con un token que ya nadie deberia tener.</summary>
+    private void Autorizar()
+    {
+        cliente.DefaultRequestHeaders.Authorization =
+            string.IsNullOrWhiteSpace(sesion.Token)
+                ? null
+                : new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", sesion.Token);
+    }
+
 
     private static readonly JsonSerializerOptions Opciones =
         new() { PropertyNameCaseInsensitive = true };
@@ -28,6 +44,7 @@ public class ServicioEmpresa(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.GetAsync(Ruta);
 
             // 204: la tabla esta vacia. NO es un error, y tratarlo como error
@@ -57,6 +74,7 @@ public class ServicioEmpresa(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PostAsJsonAsync(Ruta, e);
             return r.IsSuccessStatusCode
                 ? Resultado<Empresa>.Ok(e)
@@ -71,6 +89,7 @@ public class ServicioEmpresa(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PutAsJsonAsync($"{Ruta}/{clave}", e);
             return r.IsSuccessStatusCode
                 ? Resultado<Empresa>.Ok(e)
@@ -85,6 +104,7 @@ public class ServicioEmpresa(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.PatchAsJsonAsync($"{Ruta}/{clave}", parcial);
             return r.IsSuccessStatusCode
                 ? Resultado<bool>.Ok(true)
@@ -97,6 +117,7 @@ public class ServicioEmpresa(HttpClient cliente)
     {
         try
         {
+            Autorizar();
             var r = await cliente.DeleteAsync($"{Ruta}/{clave}");
             return r.IsSuccessStatusCode
                 ? Resultado<bool>.Ok(true)
@@ -121,6 +142,18 @@ public class ServicioEmpresa(HttpClient cliente)
             HttpStatusCode.NotFound => "No se encontro ese registro.",
             HttpStatusCode.UnprocessableEntity => "Faltan datos obligatorios.",
             HttpStatusCode.BadRequest => "Los datos enviados no son validos.",
+            // v3 — LOS DOS CODIGOS DEL CONTROL DE ACCESO, y decirlos bien
+            // es la mitad de la leccion:
+            //
+            //   401  «no se quien es usted»   -> no hay token, o vencio
+            //   403  «se quien es, y no puede» -> el token sirve, el rol no
+            //
+            // Si los dos dijeran «error del servicio», la persona no tendria
+            // forma de saber si le falta entrar o le falta permiso.
+            HttpStatusCode.Unauthorized =>
+                "Su sesion no es valida o ya vencio. Vuelva a iniciar sesion.",
+            HttpStatusCode.Forbidden =>
+                "Su rol no tiene permiso para esta operacion.",
             _ => "El servicio respondio con un problema. Intente de nuevo."
         };
     }
