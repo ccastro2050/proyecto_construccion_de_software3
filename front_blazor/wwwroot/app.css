@@ -1,7 +1,18 @@
 /* ==========================================================================
-   Estilos escritos A MANO. Sin Bootstrap, sin CDN.
+   Estilos escritos A MANO, y SIN CDN.
    Un front que necesita internet para verse bien no arranca en un salón sin
    red — y esa es la razón, no una preferencia de gusto.
+
+   LA EXCEPCIÓN, Y POR QUÉ NO CONTRADICE LO ANTERIOR (v3):
+   La interfaz de identificación —`/sesion`— usa Bootstrap, pero **servido
+   desde este mismo repositorio** (`wwwroot/lib/bootstrap/`), no desde un CDN.
+   Apague el wifi y se ve igual: la regla de arriba es contra la DEPENDENCIA DE
+   INTERNET, no contra una librería de estilos.
+
+   Y se carga SOLO en esa página, con `<HeadContent>`. Bootstrap trae su
+   «reboot», que reescribe los estilos de casi todas las etiquetas: cargarlo en
+   el layout cambiaría las otras doce interfaces, que ya estaban hechas. Así el
+   radio del cambio es una página.
    ========================================================================== */
 
 :root {
