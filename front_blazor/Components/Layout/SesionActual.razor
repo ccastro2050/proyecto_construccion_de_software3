@@ -3,21 +3,22 @@
 @implements IDisposable
 
 @*
-   Quien esta identificado, y como salir. Pequeno, y hace falta: sin esto nadie
-   sabe con que sesion esta mirando — y el criterio 8 es justamente que el menu
-   cambie segun el rol, asi que hay que poder ver CUAL rol.
+   Quién está identificado, y cómo salir. Pequeño, y hace falta: sin esto nadie
+   sabe con qué sesión está mirando — y el criterio 8 es justamente que el menú
+   cambie según el rol, así que hay que poder ver CUÁL rol.
 *@
 @if (Estado.Identificado)
 {
-    <div class="sesion-actual">
-        <span>
-            <strong>@Estado.Email</strong>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2
+                bg-body-tertiary border rounded-3 px-3 py-2 mb-4">
+        <div class="small">
+            <span class="fw-semibold">@Estado.Email</span>
             @foreach (var r in Estado.Roles)
             {
-                <span class="etiqueta">@r</span>
+                <span class="badge text-bg-secondary ms-1">@r</span>
             }
-        </span>
-        <button class="plano" @onclick="Salir">Salir</button>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="Salir">Salir</button>
     </div>
 }
 

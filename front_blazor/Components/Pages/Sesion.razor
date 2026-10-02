@@ -7,39 +7,26 @@
    ============================================================
    LA INTERFAZ DE IDENTIFICACION.
 
-   Es la unica del proyecto con Bootstrap, y las dos decisiones detras de eso
-   estan escritas aqui porque contradicen -en apariencia- una regla del
-   app.css:
+   Usa los componentes de Bootstrap directamente -card, form-control, alert-
+   porque es una pagina suelta, sin tablas ni formularios de CRUD. Las otras
+   doce usan las clases del dominio -tarjeta, campos, botones- que el app.css
+   mapea sobre ese mismo aspecto.
 
-   1. BOOTSTRAP SE SIRVE DESDE EL PROPIO REPOSITORIO, no desde un CDN. El
-      app.css dice «Sin Bootstrap, sin CDN», y su razon es concreta: «un front
-      que necesita internet para verse bien no arranca en un salon sin red».
-      Esa razon es contra el CDN. Con el archivo dentro de wwwroot, se respeta
-      entera: apague el wifi y esta pagina se ve igual.
+   Tres detalles que no son de adorno:
 
-   2. SE CARGA SOLO AQUI, con <HeadContent>. Bootstrap trae su «reboot», que
-      reescribe los estilos de casi todas las etiquetas. Cargarlo en el layout
-      cambiaria las otras doce interfaces, que ya estaban hechas y
-      verificadas. Asi el radio del cambio es UNA pagina.
+   1. EL CAMPO DE CONTRASENA ES type="password". No para que se vea bonito:
+      para que no quede en la pantalla de alguien que pase por detras, y para
+      que el navegador no lo ofrezca en el autocompletado como texto.
 
-   Y tres detalles que no son de adorno:
+   2. EL MENSAJE DE ERROR ES UNO SOLO. No dice «ese correo no existe» ni «la
+      contrasena esta mal»: dice las dos cosas juntas. Distinguirlos le
+      confirma a un desconocido CUALES correos si existen, y con una lista de
+      correos validos, probar contrasenas vale la pena.
 
-   * El campo de contrasena es type="password": no para que se vea bonito,
-     sino para que no quede en la pantalla de alguien que pase por detras.
-
-   * El mensaje de error es UNO SOLO. No dice «ese correo no existe» ni «la
-     contrasena esta mal»: dice las dos cosas juntas. Distinguirlos le
-     confirma a un desconocido CUALES correos si existen.
-
-   * El prerender esta apagado para todo el arbol (App.razor), porque
-     EstadoSesion vive en el circuito.
+   3. role="alert" EN EL AVISO. No es decoracion: es lo que hace que un lector
+      de pantalla ANUNCIE el mensaje en vez de dejarlo pasar.
    ============================================================
 *@
-
-<HeadContent>
-    @* Bootstrap, SERVIDO DESDE AQUI. Sin internet, sin CDN. *@
-    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
-</HeadContent>
 
 <div class="row justify-content-center">
     <div class="col-12 col-sm-10 col-md-7 col-lg-5">
@@ -75,9 +62,6 @@
 
                     @if (aviso is not null)
                     {
-                        @* role="alert" no es decoracion: es lo que hace que un
-                           lector de pantalla ANUNCIE el mensaje en vez de
-                           dejarlo pasar. *@
                         <div class="alert alert-danger py-2" role="alert">
                             @aviso
                         </div>
