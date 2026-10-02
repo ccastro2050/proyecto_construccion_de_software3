@@ -1,9 +1,14 @@
+@inject MenuApp Menu
 @inject EstadoSesion Estado
 @implements IDisposable
 
 @*
    ============================================================
    EL MENÚ, ARMADO CON LOS PERMISOS DE QUIEN ESTÁ IDENTIFICADO.
+
+   ES EL MISMO ARCHIVO en la v3 y la v4 —byte a byte—: las entradas salen de
+   `MenuApp`, que el `Program.cs` registra con las de su versión. La única
+   diferencia con el de la v1 y la v2 es el `@@if (Estado.PuedeVer(...))`.
 
    Y AQUÍ VA LA ADVERTENCIA MÁS IMPORTANTE DE LA v3:
 
@@ -54,78 +59,15 @@
                     <li class="nav-item">
                         <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Inicio</NavLink>
                     </li>
-                        @if (Estado.PuedeVer("interfaz.productos"))
+                    @foreach (var e in Menu.Entradas)
+                    {
+                        @if (Estado.PuedeVer(e.Permiso))
                         {
                             <li class="nav-item">
-                                <NavLink class="nav-link" href="productos">Productos</NavLink>
+                                <NavLink class="nav-link" href="@e.Ruta">@e.Texto</NavLink>
                             </li>
                         }
-                        @if (Estado.PuedeVer("interfaz.empresas"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="empresas">Empresas</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.personas"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="personas">Personas</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.roles"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="roles">Roles</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.rutas"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="rutas">Rutas</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.usuarios"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.clientes"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="clientes">Clientes</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.vendedores"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="vendedores">Vendedores</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.facturas"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="facturas">Facturas</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.usuarios"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="usuario-con-roles">Usuarios y roles</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.usuarios"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="rol-usuario">Roles por usuario</NavLink>
-                            </li>
-                        }
-                        @if (Estado.PuedeVer("interfaz.permisos"))
-                        {
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="ruta-rol">Permisos por rol</NavLink>
-                            </li>
-                        }
+                    }
                 </ul>
             }
         </div>

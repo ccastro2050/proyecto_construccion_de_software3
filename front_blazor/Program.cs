@@ -19,6 +19,37 @@ builder.Services.AddRazorComponents()
 var urlApi = builder.Configuration["UrlApi"] ?? "http://localhost:8044";
 
 // ============================================================
+// QUÉ VERSIÓN ES ESTA, Y QUÉ INTERFACES TIENE
+//
+// Es el ÚNICO sitio donde esto se escribe. El menú y el pie de página son el
+// MISMO ARCHIVO en las cuatro versiones: leen de aquí.
+//
+// Antes el número de versión y las entradas estaban a mano en el layout, y ya
+// había fallado — el Inicio decía «Versión 1 del proyecto» en los cuatro
+// proyectos, porque era un texto en un archivo que nadie volvía a mirar.
+// ============================================================
+builder.Services.AddSingleton(new MenuApp
+{
+    Version = 3,
+    Entradas =
+    [
+        new() { Ruta = "productos", Texto = "Productos", Permiso = "interfaz.productos" },
+        new() { Ruta = "empresas", Texto = "Empresas", Permiso = "interfaz.empresas" },
+        new() { Ruta = "personas", Texto = "Personas", Permiso = "interfaz.personas" },
+        new() { Ruta = "roles", Texto = "Roles", Permiso = "interfaz.roles" },
+        new() { Ruta = "rutas", Texto = "Rutas", Permiso = "interfaz.rutas" },
+        new() { Ruta = "usuarios", Texto = "Usuarios", Permiso = "interfaz.usuarios" },
+        new() { Ruta = "clientes", Texto = "Clientes", Permiso = "interfaz.clientes" },
+        new() { Ruta = "vendedores", Texto = "Vendedores", Permiso = "interfaz.vendedores" },
+        new() { Ruta = "facturas", Texto = "Facturas", Permiso = "interfaz.facturas" },
+        new() { Ruta = "usuario-con-roles", Texto = "Usuarios y roles", Permiso = "interfaz.usuarios" },
+        new() { Ruta = "rol-usuario", Texto = "Roles por usuario", Permiso = "interfaz.usuarios" },
+        new() { Ruta = "ruta-rol", Texto = "Permisos por rol", Permiso = "interfaz.permisos" },
+    ],
+});
+
+
+// ============================================================
 // v3 — LA SESION
 //
 // EstadoSesion es `scoped`, que en Blazor Server significa «uno por
